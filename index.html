@@ -473,6 +473,16 @@
 <!-- reusable svg defs -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
+    <!-- heart clip path — percentages so it scales with any element size -->
+    <clipPath id="heartClip" clipPathUnits="objectBoundingBox">
+      <path d="M0.5,0.92
+               C0.5,0.92 0.04,0.60 0.04,0.30
+               C0.04,0.12 0.16,0.03 0.30,0.03
+               C0.39,0.03 0.46,0.08 0.5,0.14
+               C0.54,0.08 0.61,0.03 0.70,0.03
+               C0.84,0.03 0.96,0.12 0.96,0.30
+               C0.96,0.60 0.5,0.92 0.5,0.92 Z"/>
+    </clipPath>
     <g id="ornament-corner">
       <path d="M10 150 C10 60 60 10 150 10" fill="none" stroke="var(--gold)" stroke-width="1"/>
       <path d="M10 120 C10 75 75 10 120 10" fill="none" stroke="var(--gold-soft)" stroke-width="1"/>

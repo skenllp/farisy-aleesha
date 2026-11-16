@@ -215,6 +215,17 @@
     });
   }
 
+  // Stop music when user navigates away (back/forward/close/tab switch)
+  window.addEventListener("pagehide", function () {
+    if (audio && !audio.paused) { audio.pause(); audio.currentTime = 0; }
+  });
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "hidden" && audio && !audio.paused) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+  });
+
   /* ---------- Guest personalisation (?guest=Name in URL) ---------- */
   /*
   (function () {
@@ -608,7 +619,7 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
   if (!root || !stage || !canvas || !fx || !dateEl) return;
 
   var REVEAL_TEXT = "03 JANUARY 2027";
-  var THRESHOLD   = 0.55;           // fraction scratched before auto-reveal
+  var THRESHOLD   = 0.25;           // fraction scratched before auto-reveal
   var reduced     = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   var ctx = canvas.getContext("2d", { willReadFrequently: true });
@@ -617,6 +628,32 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
   var drawing = false, last = null, revealed = false, checkTimer = 0, dirty = false;
   var brush = 22;
 
+  /* ---------- heart path helper — matches the SVG clipPath exactly ---------- */
+  function heartPath(ctx2d, w, h) {
+    // Mirrors the objectBoundingBox clipPath: M0.5,0.92 …
+    ctx2d.beginPath();
+    ctx2d.moveTo(w * 0.5,  h * 0.92);
+    ctx2d.bezierCurveTo(w * 0.5,  h * 0.92,
+                        w * 0.04, h * 0.60,
+                        w * 0.04, h * 0.30);
+    ctx2d.bezierCurveTo(w * 0.04, h * 0.12,
+                        w * 0.16, h * 0.03,
+                        w * 0.30, h * 0.03);
+    ctx2d.bezierCurveTo(w * 0.39, h * 0.03,
+                        w * 0.46, h * 0.08,
+                        w * 0.5,  h * 0.14);
+    ctx2d.bezierCurveTo(w * 0.54, h * 0.08,
+                        w * 0.61, h * 0.03,
+                        w * 0.70, h * 0.03);
+    ctx2d.bezierCurveTo(w * 0.84, h * 0.03,
+                        w * 0.96, h * 0.12,
+                        w * 0.96, h * 0.30);
+    ctx2d.bezierCurveTo(w * 0.96, h * 0.60,
+                        w * 0.5,  h * 0.92,
+                        w * 0.5,  h * 0.92);
+    ctx2d.closePath();
+  }
+
   /* ---------- paint the gold scratch surface ---------- */
   function paintSurface() {
     var w = W, h = H;
@@ -624,6 +661,10 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.globalCompositeOperation = "source-over";
     ctx.clearRect(0, 0, w, h);
+
+    // clip everything to the heart shape
+    heartPath(ctx, w, h);
+    ctx.clip();
 
     // base brushed-gold gradient
     var g = ctx.createLinearGradient(0, 0, w, h);
@@ -643,58 +684,60 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
     }
 
     // sparkle speckle
-    for (var i = 0; i < 90; i++) {
+    for (var i = 0; i < 70; i++) {
       var sx = Math.random() * w, sy = Math.random() * h;
       ctx.fillStyle = "rgba(255,255,255," + (0.12 + Math.random() * 0.3).toFixed(2) + ")";
       ctx.beginPath(); ctx.arc(sx, sy, Math.random() * 1.3 + 0.3, 0, Math.PI * 2); ctx.fill();
     }
 
-    // inner double border
-    ctx.strokeStyle = "rgba(111,78,20,.55)"; ctx.lineWidth = 1;
-    ctx.strokeRect(8.5, 8.5, w - 17, h - 17);
-    ctx.strokeStyle = "rgba(255,248,224,.7)";
-    ctx.strokeRect(12.5, 12.5, w - 25, h - 25);
+    // heart border stroke
+    heartPath(ctx, w, h);
+    ctx.strokeStyle = "rgba(111,78,20,.55)"; ctx.lineWidth = 2.5;
+    ctx.stroke();
+    heartPath(ctx, w, h);
+    ctx.strokeStyle = "rgba(255,248,224,.5)"; ctx.lineWidth = 1;
+    ctx.stroke();
 
-    // corner diamonds
-    ctx.fillStyle = "rgba(111,78,20,.7)";
-    [[16, 16], [w - 16, 16], [16, h - 16], [w - 16, h - 16]].forEach(function (c) {
-      ctx.save(); ctx.translate(c[0], c[1]); ctx.rotate(Math.PI / 4);
-      ctx.fillRect(-3, -3, 6, 6); ctx.restore();
-    });
-
-    // text
+    // text — centred in the wide belly of the heart (top 30 % – 62 %)
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     ctx.shadowColor = "rgba(255,248,224,.8)"; ctx.shadowOffsetY = 1; ctx.shadowBlur = 0;
     ctx.fillStyle = "#4a3410";
-    var maxTextW = w - 56;
-    var fs1 = Math.round(h * 0.15);
+    var maxTextW = w * 0.55;                     // safe width inside the heart
+    var fs1 = Math.round(h * 0.11);
     ctx.font = "italic 500 " + fs1 + "px 'Playfair Display', Georgia, serif";
-    while (ctx.measureText("A Special Day Awaits\u2026").width > maxTextW && fs1 > 10) {
+    while (ctx.measureText("A Special Day").width > maxTextW && fs1 > 8) {
       fs1 -= 1; ctx.font = "italic 500 " + fs1 + "px 'Playfair Display', Georgia, serif";
     }
-    ctx.fillText("A Special Day Awaits\u2026", w / 2, h * 0.34);
+    var line1Y = h * 0.36;
+    ctx.fillText("A Special Day", w / 2, line1Y);
+    ctx.fillText("Awaits\u2026",   w / 2, line1Y + fs1 * 1.35);
 
-    // ornament
+    // ornament line — sits just below the two text lines
     ctx.shadowColor = "transparent";
     ctx.strokeStyle = "rgba(74,52,16,.6)"; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(w / 2 - 54, h * 0.5); ctx.lineTo(w / 2 - 9, h * 0.5);
-    ctx.moveTo(w / 2 + 9, h * 0.5); ctx.lineTo(w / 2 + 54, h * 0.5); ctx.stroke();
+    var oy = line1Y + fs1 * 1.35 + fs1 * 0.9;
+    ctx.beginPath();
+    ctx.moveTo(w / 2 - 32, oy); ctx.lineTo(w / 2 - 7, oy);
+    ctx.moveTo(w / 2 + 7,  oy); ctx.lineTo(w / 2 + 32, oy);
+    ctx.stroke();
     ctx.fillStyle = "rgba(74,52,16,.75)";
-    ctx.save(); ctx.translate(w / 2, h * 0.5); ctx.rotate(Math.PI / 4); ctx.fillRect(-3, -3, 6, 6); ctx.restore();
+    ctx.save(); ctx.translate(w / 2, oy); ctx.rotate(Math.PI / 4); ctx.fillRect(-2.5, -2.5, 5, 5); ctx.restore();
 
+    // sub-text — small label below ornament, still in the wide zone
     ctx.shadowColor = "rgba(255,248,224,.8)"; ctx.shadowOffsetY = 1;
     ctx.fillStyle = "#4a3410";
-    var fs2 = Math.max(10, Math.round(h * 0.085));
-    var ls = "letterSpacing" in ctx ? 3 : 0;
+    var fs2 = Math.max(8, Math.round(h * 0.065));
+    var ls = "letterSpacing" in ctx ? 2 : 0;
     function setSub() {
       ctx.font = "600 " + fs2 + "px 'Cormorant Garamond', Georgia, serif";
       if ("letterSpacing" in ctx) ctx.letterSpacing = ls + "px";
     }
     setSub();
-    while (ctx.measureText("SCRATCH TO REVEAL THE DATE").width > maxTextW && fs2 > 8) {
-      fs2 -= 1; ls = Math.max(1, ls - 0.2); setSub();
+    var subLabel = "SCRATCH TO REVEAL";
+    while (ctx.measureText(subLabel).width > maxTextW && fs2 > 7) {
+      fs2 -= 1; ls = Math.max(0, ls - 0.2); setSub();
     }
-    ctx.fillText("SCRATCH TO REVEAL THE DATE", w / 2, h * 0.67);
+    ctx.fillText(subLabel, w / 2, oy + fs2 * 1.5);
     if ("letterSpacing" in ctx) ctx.letterSpacing = "0px";
     ctx.restore();
   }
