@@ -621,7 +621,7 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
 
   var REVEAL_TEXT = "03 JANUARY 2027";
   var REVEAL_TIME = "6:00 PM – 9:00 PM";
-  var REQUIRED_SCRATCHES = 3;
+  var REQUIRED_SCRATCHES = 4;
   var scratchCount = 0;
   var strokeDistance = 0;
   var segmentDistance = 0;
@@ -633,8 +633,8 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
   function updateHint() {
     if (!hintEl || revealed) return;
     var remaining = REQUIRED_SCRATCHES - scratchCount;
-    if (remaining === 2) {
-      hintEl.textContent = "Scratch 2 more times to reveal";
+    if (remaining > 1) {
+      hintEl.textContent = "Scratch " + remaining + " more times to reveal";
     } else if (remaining === 1) {
       hintEl.textContent = "Scratch 1 more time to reveal";
     } else if (remaining <= 0) {
