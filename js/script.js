@@ -71,8 +71,8 @@
   }
 
   /* ---------- Countdown timer ---------- */
-  // Reception date: 3 January 2027 (shown only after the scratch card is revealed)
-  var WEDDING_DATE = new Date("2027-01-03T00:00:00");
+  // Reception date: 3 January 2027, 6:00 PM (shown only after the scratch card is revealed)
+  var WEDDING_DATE = new Date("2027-01-03T18:00:00");
 
   var elDays = document.getElementById("cd-days");
   var elHours = document.getElementById("cd-hours");
@@ -616,11 +616,43 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
   var canvas = document.getElementById("scratchCanvas");
   var fx     = document.getElementById("scratchFx");
   var dateEl = document.getElementById("scratchDate");
+  var timeEl = document.getElementById("scratchTime");
   if (!root || !stage || !canvas || !fx || !dateEl) return;
 
   var REVEAL_TEXT = "03 JANUARY 2027";
-  var THRESHOLD   = 0.25;           // fraction scratched before auto-reveal
+  var REVEAL_TIME = "6:00 PM – 9:00 PM";
+  var REQUIRED_SCRATCHES = 3;
+  var scratchCount = 0;
+  var strokeDistance = 0;
+  var segmentDistance = 0;
+  var lastDx = 0, lastDy = 0;
+  var lastScratchTime = 0;
+  var hintEl = document.getElementById("scratchHint");
   var reduced     = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function updateHint() {
+    if (!hintEl || revealed) return;
+    var remaining = REQUIRED_SCRATCHES - scratchCount;
+    if (remaining === 2) {
+      hintEl.textContent = "Scratch 2 more times to reveal";
+    } else if (remaining === 1) {
+      hintEl.textContent = "Scratch 1 more time to reveal";
+    } else if (remaining <= 0) {
+      hintEl.textContent = "";
+    }
+  }
+
+  function countScratch() {
+    if (revealed) return;
+    var now = Date.now();
+    if (now - lastScratchTime < 250) return;
+    lastScratchTime = now;
+    scratchCount++;
+    updateHint();
+    if (scratchCount >= REQUIRED_SCRATCHES) {
+      reveal();
+    }
+  }
 
   var ctx = canvas.getContext("2d", { willReadFrequently: true });
   var fctx = fx.getContext("2d");
@@ -788,7 +820,9 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
     if (checkTimer || revealed) return;
     checkTimer = window.setTimeout(function () {
       checkTimer = 0;
-      if (dirty && !revealed && scratchedFraction() >= THRESHOLD) reveal();
+      if (dirty && !revealed && (scratchCount >= REQUIRED_SCRATCHES || scratchedFraction() >= 0.50)) {
+        reveal();
+      }
       dirty = false;
     }, 120);
   }
@@ -797,6 +831,10 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
     if (revealed) return;
     drawing = true;
     last = pos(e);
+    strokeDistance = 0;
+    segmentDistance = 0;
+    lastDx = 0;
+    lastDy = 0;
     try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
     erase(last, { x: last.x + 0.01, y: last.y + 0.01 });
     e.preventDefault();
@@ -804,15 +842,46 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
   function move(e) {
     if (!drawing || revealed) return;
     var p = pos(e);
-    erase(last, p);
-    last = p;
-    scheduleCheck();
+    var dx = p.x - last.x;
+    var dy = p.y - last.y;
+    var dist = Math.hypot(dx, dy);
+
+    if (dist > 1.2) {
+      strokeDistance += dist;
+      segmentDistance += dist;
+      erase(last, p);
+      last = p;
+
+      // Detect reversal for continuous back-and-forth scrubbing
+      if (lastDx !== 0 || lastDy !== 0) {
+        var dot = (dx * lastDx + dy * lastDy) / (Math.hypot(dx, dy) * Math.hypot(lastDx, lastDy));
+        if (dot < -0.2 && segmentDistance >= 25) {
+          countScratch();
+          segmentDistance = 0;
+        }
+      }
+      lastDx = dx;
+      lastDy = dy;
+
+      // On final scratch stroke, reveal once dragged a bit
+      if (scratchCount === REQUIRED_SCRATCHES - 1 && segmentDistance >= 25) {
+        countScratch();
+      }
+
+      scheduleCheck();
+    }
     e.preventDefault();
   }
   function up(e) {
     if (!drawing) return;
-    drawing = false; last = null;
+    drawing = false;
+    last = null;
     try { canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+    if (strokeDistance >= 20 && segmentDistance >= 12) {
+      countScratch();
+    }
+    strokeDistance = 0;
+    segmentDistance = 0;
     scheduleCheck();
   }
 
@@ -831,8 +900,9 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
     if (revealed) return;
     revealed = true;
     dateEl.textContent = REVEAL_TEXT;       // date enters the DOM only now
+    if (timeEl) timeEl.textContent = REVEAL_TIME;
     root.classList.add("is-revealed");
-    canvas.setAttribute("aria-label", "Date revealed: " + REVEAL_TEXT);
+    canvas.setAttribute("aria-label", "Date revealed: " + REVEAL_TEXT + ", " + REVEAL_TIME);
     canvas.tabIndex = -1;
 
     var cd = document.getElementById("countdown");
@@ -840,6 +910,19 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
       cd.classList.remove("countdown--locked");
       cd.classList.add("countdown--unlocked");
     }
+
+    // Reveal sections below the scratch card
+    var postSections = document.querySelectorAll(".post-scratch-hidden");
+    postSections.forEach(function (sec) {
+      sec.classList.remove("post-scratch-hidden");
+      sec.classList.add("post-scratch-revealed");
+    });
+
+    window.setTimeout(function () {
+      window.dispatchEvent(new Event("scroll"));
+      window.dispatchEvent(new Event("resize"));
+    }, 100);
+
     if (!reduced) burst();
   }
 
