@@ -658,7 +658,7 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
   var fctx = fx.getContext("2d");
   var W = 0, H = 0, dpr = 1;
   var drawing = false, last = null, revealed = false, checkTimer = 0, dirty = false;
-  var brush = 22;
+  var brush = 42;
 
   /* ---------- heart path helper — matches the SVG clipPath exactly ---------- */
   function heartPath(ctx2d, w, h) {
@@ -780,7 +780,7 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
     W = Math.round(r.width); H = Math.round(r.height);
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     [canvas, fx].forEach(function (c) { c.width = Math.round(W * dpr); c.height = Math.round(H * dpr); });
-    brush = Math.max(18, Math.round(W * 0.07));
+    brush = Math.max(36, Math.round(W * 0.12));
     paintSurface();
   }
 
