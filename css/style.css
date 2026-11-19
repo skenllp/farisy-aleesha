@@ -1689,11 +1689,6 @@ a:focus-visible, button:focus-visible{
   animation: gate-fade-up 1s var(--ease) both;
 }
 
-.calendar-dropdown{
-  position: relative;
-  display: inline-block;
-}
-
 .calendar-btn{
   cursor: pointer;
   background: transparent;
@@ -1701,7 +1696,7 @@ a:focus-visible, button:focus-visible{
   align-items: center;
   justify-content: center;
   gap: .55rem;
-  padding: .72rem 1.6rem;
+  padding: .75rem 1.8rem;
   font-family: 'Cormorant Garamond', Georgia, serif;
   font-size: .88rem;
   letter-spacing: .2em;
@@ -1717,67 +1712,10 @@ a:focus-visible, button:focus-visible{
   border-color: var(--emerald-deep);
   color: var(--paper);
 }
-.calendar-arrow{
-  transition: transform .3s var(--ease);
-}
-.calendar-dropdown.is-open .calendar-arrow{
-  transform: rotate(180deg);
-}
-
-.calendar-menu{
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%) translateY(-6px);
-  min-width: 220px;
-  background: var(--paper);
-  border: 1px solid var(--gold-soft);
-  border-radius: 12px;
-  box-shadow: 0 14px 34px rgba(29,48,38,.16);
-  padding: .45rem;
-  display: flex;
-  flex-direction: column;
-  gap: .25rem;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity .25s var(--ease), transform .25s var(--ease), visibility .25s;
-  z-index: 50;
-}
-.calendar-dropdown.is-open .calendar-menu{
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
-}
-
-.calendar-menu__item{
-  display: flex;
-  align-items: center;
-  gap: .7rem;
-  padding: .65rem .95rem;
-  font-family: 'Cormorant Garamond', Georgia, serif;
-  font-size: .95rem;
-  letter-spacing: .08em;
-  color: var(--emerald-deep);
-  text-decoration: none;
-  border-radius: 8px;
-  background: transparent;
-  border: none;
-  width: 100%;
-  box-sizing: border-box;
-  text-align: left;
-  cursor: pointer;
-  transition: background .2s var(--ease), color .2s var(--ease);
-}
-.calendar-menu__item:hover,
-.calendar-menu__item:focus-visible{
-  background: rgba(169,129,47,.14);
-  color: var(--gold);
-  outline: none;
-}
-.calendar-menu__item svg{
-  flex-shrink: 0;
+.calendar-btn.is-success{
+  background: var(--emerald-deep);
+  border-color: var(--emerald-deep);
+  color: var(--paper);
 }
 
 /* countdown stays hidden until the date has been revealed */

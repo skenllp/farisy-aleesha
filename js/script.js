@@ -966,44 +966,14 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
     requestAnimationFrame(frame);
   }
 
-  /* ---------- Add to Calendar (.ics download + dropdown toggle) ---------- */
-  var calDropdown = document.getElementById("calendarDropdown");
+  /* ---------- Add to Calendar (automatic 1-click set, 9:00 AM – 10:00 AM reminder) ---------- */
   var calBtn = document.getElementById("calendarBtn");
-  var downloadIcsBtn = document.getElementById("downloadIcsBtn");
 
-  if (calBtn && calDropdown) {
-    calBtn.addEventListener("click", function (e) {
-      e.stopPropagation();
-      var isOpen = calDropdown.classList.toggle("is-open");
-      calBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    });
-
-    document.addEventListener("click", function (e) {
-      if (!calDropdown.contains(e.target)) {
-        calDropdown.classList.remove("is-open");
-        calBtn.setAttribute("aria-expanded", "false");
-      }
-    });
-
-    document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && calDropdown.classList.contains("is-open")) {
-        calDropdown.classList.remove("is-open");
-        calBtn.setAttribute("aria-expanded", "false");
-        calBtn.focus();
-      }
-    });
-  }
-
-  if (downloadIcsBtn) {
-    downloadIcsBtn.addEventListener("click", function (e) {
-      e.preventDefault();
-      if (calDropdown) {
-        calDropdown.classList.remove("is-open");
-        if (calBtn) calBtn.setAttribute("aria-expanded", "false");
-      }
-      generateICS();
-    });
-  }
+  var GCAL_URL = "https://calendar.google.com/calendar/render?action=TEMPLATE" +
+    "&text=" + encodeURIComponent("Wedding Reminder — Salmanul Farisy & Aleesha") +
+    "&dates=20270103T033000Z/20270103T043000Z" +
+    "&details=" + encodeURIComponent("Wedding reminder for the marriage celebrations of Salmanul Farisy & Aleesha.\n\nReception Time: 6:00 PM – 9:00 PM\nDate: Sunday, 3 January 2027\nVenue Location: https://maps.app.goo.gl/XEPXWruf9S4tPvzz7") +
+    "&location=" + encodeURIComponent("https://maps.app.goo.gl/XEPXWruf9S4tPvzz7");
 
   function generateICS() {
     var ics = [
@@ -1013,14 +983,19 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
       "CALSCALE:GREGORIAN",
       "METHOD:PUBLISH",
       "BEGIN:VEVENT",
-      "UID:salmanul-aleesha-reception-20270103@" + (window.location.host || "farisy-aleesha"),
+      "UID:salmanul-aleesha-reminder-20270103@" + (window.location.host || "farisy-aleesha"),
       "DTSTAMP:20261117T000000Z",
-      "DTSTART:20270103T123000Z",
-      "DTEND:20270103T153000Z",
-      "SUMMARY:Wedding Reception \u2014 Salmanul Farisy & Aleesha",
-      "DESCRIPTION:You are warmly invited to celebrate the wedding reception of Salmanul Farisy & Aleesha.\\n\\nDate: Sunday, 3 January 2027\\nTime: 6:00 PM \u2013 9:00 PM IST\\nVenue: https://maps.app.goo.gl/XEPXWruf9S4tPvzz7",
+      "DTSTART:20270103T033000Z",
+      "DTEND:20270103T043000Z",
+      "SUMMARY:Wedding Reminder \u2014 Salmanul Farisy & Aleesha",
+      "DESCRIPTION:Wedding reminder for the marriage celebrations of Salmanul Farisy & Aleesha.\\n\\nReception Time: 6:00 PM \u2013 9:00 PM\\nDate: Sunday, 3 January 2027\\nVenue Location: https://maps.app.goo.gl/XEPXWruf9S4tPvzz7",
       "LOCATION:https://maps.app.goo.gl/XEPXWruf9S4tPvzz7",
       "STATUS:CONFIRMED",
+      "BEGIN:VALARM",
+      "TRIGGER:-PT0M",
+      "ACTION:DISPLAY",
+      "DESCRIPTION:Wedding Reminder \u2014 Salmanul Farisy & Aleesha",
+      "END:VALARM",
       "END:VEVENT",
       "END:VCALENDAR"
     ].join("\r\n");
@@ -1029,11 +1004,39 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
     var url = URL.createObjectURL(blob);
     var a = document.createElement("a");
     a.href = url;
-    a.download = "Salmanul-Farisy-Aleesha-Reception.ics";
+    a.download = "Salmanul-Farisy-Aleesha-Reminder.ics";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  }
+
+  if (calBtn) {
+    var calOriginalHTML = calBtn.innerHTML;
+    var calFeedbackTimer = 0;
+
+    calBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+
+      var ua = navigator.userAgent || "";
+      var isIOS = /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+      if (isIOS) {
+        generateICS();
+      } else {
+        window.open(GCAL_URL, "_blank", "noopener,noreferrer");
+      }
+
+      // Visual confirmation feedback
+      window.clearTimeout(calFeedbackTimer);
+      calBtn.classList.add("is-success");
+      calBtn.innerHTML = '<svg class="button__icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg><span>Reminder Set!</span>';
+
+      calFeedbackTimer = window.setTimeout(function () {
+        calBtn.classList.remove("is-success");
+        calBtn.innerHTML = calOriginalHTML;
+      }, 2600);
+    });
   }
 
   /* ---------- init / resize (never re-covers once revealed) ---------- */
