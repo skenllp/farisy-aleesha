@@ -911,6 +911,12 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
       cd.classList.add("countdown--unlocked");
     }
 
+    var cal = document.getElementById("calendarOption");
+    if (cal) {
+      cal.classList.remove("calendar-option--locked");
+      cal.classList.add("calendar-option--unlocked");
+    }
+
     // Reveal sections below the scratch card
     var postSections = document.querySelectorAll(".post-scratch-hidden");
     postSections.forEach(function (sec) {
@@ -958,6 +964,76 @@ document.addEventListener("DOMContentLoaded", initFloatingFlowers);
       if (alive) requestAnimationFrame(frame); else fctx.clearRect(0, 0, W, H);
     }
     requestAnimationFrame(frame);
+  }
+
+  /* ---------- Add to Calendar (.ics download + dropdown toggle) ---------- */
+  var calDropdown = document.getElementById("calendarDropdown");
+  var calBtn = document.getElementById("calendarBtn");
+  var downloadIcsBtn = document.getElementById("downloadIcsBtn");
+
+  if (calBtn && calDropdown) {
+    calBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var isOpen = calDropdown.classList.toggle("is-open");
+      calBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    });
+
+    document.addEventListener("click", function (e) {
+      if (!calDropdown.contains(e.target)) {
+        calDropdown.classList.remove("is-open");
+        calBtn.setAttribute("aria-expanded", "false");
+      }
+    });
+
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && calDropdown.classList.contains("is-open")) {
+        calDropdown.classList.remove("is-open");
+        calBtn.setAttribute("aria-expanded", "false");
+        calBtn.focus();
+      }
+    });
+  }
+
+  if (downloadIcsBtn) {
+    downloadIcsBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      if (calDropdown) {
+        calDropdown.classList.remove("is-open");
+        if (calBtn) calBtn.setAttribute("aria-expanded", "false");
+      }
+      generateICS();
+    });
+  }
+
+  function generateICS() {
+    var ics = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Salmanul Farisy & Aleesha//Wedding Invitation//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "BEGIN:VEVENT",
+      "UID:salmanul-aleesha-reception-20270103@" + (window.location.host || "farisy-aleesha"),
+      "DTSTAMP:20261117T000000Z",
+      "DTSTART:20270103T123000Z",
+      "DTEND:20270103T153000Z",
+      "SUMMARY:Wedding Reception \u2014 Salmanul Farisy & Aleesha",
+      "DESCRIPTION:You are warmly invited to celebrate the wedding reception of Salmanul Farisy & Aleesha.\\n\\nDate: Sunday, 3 January 2027\\nTime: 6:00 PM \u2013 9:00 PM IST\\nVenue: https://maps.app.goo.gl/XEPXWruf9S4tPvzz7",
+      "LOCATION:https://maps.app.goo.gl/XEPXWruf9S4tPvzz7",
+      "STATUS:CONFIRMED",
+      "END:VEVENT",
+      "END:VCALENDAR"
+    ].join("\r\n");
+
+    var blob = new Blob([ics], { type: "text/calendar;charset=utf-8" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "Salmanul-Farisy-Aleesha-Reception.ics";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
   }
 
   /* ---------- init / resize (never re-covers once revealed) ---------- */
